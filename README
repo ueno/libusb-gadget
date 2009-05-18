@@ -21,7 +21,7 @@ will need to generate a couple of kernel modules by hand:
  $ cd libusg/scripts
  $ ./generate-kernel-modules /usr/src/linux-source-2.6.XX
 
-After successfull build, you will find "dummy_hcd.ko" and
+After successful build, you will find "dummy_hcd.ko" and
 "gadgetfs.ko" in the current working directory.  You can load them with:
 
  $ sudo insmod dummy_hcd.ko
