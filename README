@@ -52,12 +52,15 @@ On another terminal:
 
 - Multithreading is necessary since /dev/gadget/$ENDPOINT (except for
   ep0) do not support polling.
-- The endpoint number in the endpoint descriptor must be specified explicitly.
+
+- The endpoint number in the endpoint descriptor must be specified
+  explicitly, while the kernel space API assigns them automatically.
+
 - The max packet size is also mandatory in that descriptor.
 
 * License
 
-LGPLv3.  See COPYING.LESSER for more detail.
+LGPLv3.  See COPYING.LESSER for details.
 
 Footnotes: 
 [1]  http://www.linux-usb.org/gadget/
@@ -65,4 +68,11 @@ Footnotes:
 
 * Copyright
 
+All files are under the copyright of:
+
 Copyright (C) 2009 Daiki Ueno <ueno@unixuser.org>
+
+except src/usbstring.[ch] which are based on the version by David
+Brownell and under the copyright of:
+
+Copyright (C) 2003 David Brownell
