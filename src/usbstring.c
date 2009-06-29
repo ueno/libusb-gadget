@@ -15,7 +15,7 @@
 #else
 #include <linux/usb_ch9.h>
 #endif
-#include "usg.h"
+#include "usb_gadget.h"
 
 static inline void put_unaligned_le16(uint16_t val, uint16_t *cp)
 {
@@ -108,9 +108,9 @@ fail:
  * characters.
  */
 int
-usg_get_string (struct usg_strings *table, int id, uint8_t *buf)
+usb_gadget_get_string (struct usb_gadget_strings *table, int id, uint8_t *buf)
 {
-	struct usg_string	*s;
+	struct usb_gadget_string	*s;
 	int			len;
 
 	/* descriptor 0 has the language id */

@@ -1,3 +1,3 @@
-include_HEADERS = usg.h
-lib_LTLIBRARIES = libusg.la
-libusg_la_SOURCES = usg.c usbstring.c list.h
+include_HEADERS = usb-gadget.h
+lib_LTLIBRARIES = libusb-gadget.la
+libusb-gadget_la_SOURCES = usb-gadget.c usbstring.c list.h

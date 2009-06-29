@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2009 Daiki Ueno <ueno@unixuser.org>
- * This file is part of libusg.
+ * This file is part of libusb-gadget.
  *
- * libusg is free software: you can redistribute it and/or modify
+ * libusb_gadget is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libusg is distributed in the hope that it will be useful,
+ * libusb_gadget is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -34,35 +34,35 @@
 #else
 #include <linux/usb_gadgetfs.h>
 #endif
-#include "usg.h"
+#include "usb_gadget.h"
 #include "list.h"
 
 #define GADGETFS_DEVICE_PATH "/dev/gadget"
 #define USB_BUFSIZ (7 * 1024)
 #define NEVENT 5
 
-struct _usg_endpoint
+struct _usb_gadget_endpoint
 {
-  struct usg_endpoint ep;
+  struct usb_gadget_endpoint ep;
   struct usb_endpoint_descriptor *descriptor, *hs_descriptor;
-  struct usg_list_head ep_list;
-  usg_dev_handle *handle;
+  struct usb_gadget_list_head ep_list;
+  usb_gadget_dev_handle *handle;
   int fd;
 };
 
-struct usg_dev_handle
+struct usb_gadget_dev_handle
 {
-  struct _usg_endpoint *ep0;
-  struct usg_device *device;
-  struct usg_list_head ep_list;
-  usg_event_cb event_cb;
+  struct _usb_gadget_endpoint *ep0;
+  struct usb_gadget_device *device;
+  struct usb_gadget_list_head ep_list;
+  usb_gadget_event_cb event_cb;
   void *event_arg;
   int debug_level;
   enum usb_device_speed speed;
 };
 
 static inline void
-debug (usg_dev_handle *handle, int level, const char *format, ...)
+debug (usb_gadget_dev_handle *handle, int level, const char *format, ...)
 {
   va_list ap;
   va_start(ap, format);
@@ -75,7 +75,7 @@ debug (usg_dev_handle *handle, int level, const char *format, ...)
 }
 
 void
-usg_set_debug_level (usg_dev_handle *handle, int level)
+usb_gadget_set_debug_level (usb_gadget_dev_handle *handle, int level)
 {
   handle->debug_level = level;
 }
@@ -98,13 +98,13 @@ config_buf (void *buf, unsigned buflen, struct usb_descriptor_header **config)
     }
 
   ((struct usb_config_descriptor *)buf)->wTotalLength =
-    usg_cpu_to_le16(p - buf);
+    usb_gadget_cpu_to_le16(p - buf);
 
   return p - buf;
 }
 
-static struct _usg_endpoint *
-find_ep0 (struct usg_dev_handle *handle)
+static struct _usb_gadget_endpoint *
+find_ep0 (struct usb_gadget_dev_handle *handle)
 {
   DIR *dirp;
   struct dirent *entry;
@@ -122,7 +122,7 @@ find_ep0 (struct usg_dev_handle *handle)
     "atmel_usba_udc",
     NULL
   };
-  struct _usg_endpoint *ep0 = NULL;
+  struct _usb_gadget_endpoint *ep0 = NULL;
 
   dirp = opendir (GADGETFS_DEVICE_PATH);
   if (!dirp)
@@ -153,7 +153,7 @@ find_ep0 (struct usg_dev_handle *handle)
           ep0 = malloc (sizeof(*ep0));
           if (!ep0)
 	    break;
-          usg_init_list_head (&ep0->ep_list);
+          usb_gadget_init_list_head (&ep0->ep_list);
           ep0->ep.name = strdup (table[i]);
           if (!ep0->ep.name)
             {
@@ -173,11 +173,11 @@ find_ep0 (struct usg_dev_handle *handle)
 }
 
 static int
-open_ep0 (struct usg_dev_handle *handle)
+open_ep0 (struct usb_gadget_dev_handle *handle)
 {
   int ret;
   char buf[USB_BUFSIZ], *p;
-  struct _usg_endpoint *ep0 = handle->ep0;
+  struct _usb_gadget_endpoint *ep0 = handle->ep0;
 
   snprintf (buf, sizeof(buf), "%s/%s", GADGETFS_DEVICE_PATH, ep0->ep.name);
   ep0->fd = open (buf, O_RDWR);
@@ -206,7 +206,7 @@ open_ep0 (struct usg_dev_handle *handle)
 
   if (write (ep0->fd, buf, p - buf) < 0)
     {
-      debug (ep0->handle, 2, "libusg: open_ep0: can't write config\n");
+      debug (ep0->handle, 2, "libusb_gadget: open_ep0: can't write config\n");
       goto error;
     }
 
@@ -219,7 +219,7 @@ open_ep0 (struct usg_dev_handle *handle)
 }
 
 static int
-ep_matches (struct usg_dev_handle *handle,
+ep_matches (struct usb_gadget_dev_handle *handle,
 	    const char *name, struct usb_endpoint_descriptor *descriptor)
 {
   int address = -1, desired_address;
@@ -263,13 +263,13 @@ ep_matches (struct usg_dev_handle *handle,
   return 1;
 }
 
-static struct _usg_endpoint *
-find_ep (struct usg_dev_handle *handle,
+static struct _usb_gadget_endpoint *
+find_ep (struct usb_gadget_dev_handle *handle,
 	 struct usb_endpoint_descriptor *descriptor)
 {
   DIR *dirp;
   struct dirent *entry;
-  struct _usg_endpoint *ep = NULL;
+  struct _usb_gadget_endpoint *ep = NULL;
 
   assert (handle->ep0);
 
@@ -300,8 +300,8 @@ find_ep (struct usg_dev_handle *handle,
       if (strcmp (handle->ep0->ep.name, entry->d_name) &&
           !strncmp (entry->d_name, "ep", 2))
         {
-	  struct _usg_endpoint *_ep;
-	  usg_list_for_each_entry (_ep, &handle->ep_list, ep_list)
+	  struct _usb_gadget_endpoint *_ep;
+	  usb_gadget_list_for_each_entry (_ep, &handle->ep_list, ep_list)
 	    {
 	      if (!strcmp (_ep->ep.name, entry->d_name))
 		goto next;
@@ -321,8 +321,8 @@ find_ep (struct usg_dev_handle *handle,
 	      break;
 	    }
 	  ep->fd = -1;
-	  usg_init_list_head (&ep->ep_list);
-	  usg_list_add (&ep->ep_list, &handle->ep_list);
+	  usb_gadget_init_list_head (&ep->ep_list);
+	  usb_gadget_list_add (&ep->ep_list, &handle->ep_list);
         }
     }
 
@@ -332,7 +332,7 @@ find_ep (struct usg_dev_handle *handle,
 }
 
 static int
-open_ep (struct _usg_endpoint *ep,
+open_ep (struct _usb_gadget_endpoint *ep,
          struct usb_endpoint_descriptor *descriptor,
          struct usb_endpoint_descriptor *hs_descriptor)
 {
@@ -358,7 +358,7 @@ open_ep (struct _usg_endpoint *ep,
   ret = write (ep->fd, buf, p - buf);
   if (ret < 0)
     {
-      debug (ep->handle, 2, "libusg: open_ep: can't write config\n");
+      debug (ep->handle, 2, "libusb_gadget: open_ep: can't write config\n");
       close (ep->fd);
       return -1;
     }
@@ -367,11 +367,11 @@ open_ep (struct _usg_endpoint *ep,
 }
 
 static void
-close_ep (struct _usg_endpoint *ep)
+close_ep (struct _usb_gadget_endpoint *ep)
 {
   assert (ep);
 
-  usg_list_del (&ep->ep_list);
+  usb_gadget_list_del (&ep->ep_list);
   if (ep->fd > 0)
     close (ep->fd);
   free (ep->ep.name);
@@ -381,20 +381,20 @@ close_ep (struct _usg_endpoint *ep)
 }
 
 int
-usg_endpoint_close (struct usg_endpoint *ep)
+usb_gadget_endpoint_close (struct usb_gadget_endpoint *ep)
 {
-  struct _usg_endpoint *_ep;
+  struct _usb_gadget_endpoint *_ep;
 
-  _ep = usg_container_of(ep, struct _usg_endpoint, ep);
+  _ep = usb_gadget_container_of(ep, struct _usb_gadget_endpoint, ep);
   close_ep (_ep);
 
   return 0;
 }
 
-usg_dev_handle *
-usg_open (struct usg_device *device)
+usb_gadget_dev_handle *
+usb_gadget_open (struct usb_gadget_device *device)
 {
-  struct usg_dev_handle *handle;
+  struct usb_gadget_dev_handle *handle;
 
   if (!device || !device->device || !device->config)
     {
@@ -414,7 +414,7 @@ usg_open (struct usg_device *device)
   if (open_ep0 (handle) < 0)
     goto error;
 
-  usg_init_list_head (&handle->ep_list);
+  usb_gadget_init_list_head (&handle->ep_list);
   return handle;
 
  error:
@@ -429,9 +429,9 @@ usg_open (struct usg_device *device)
 }
 
 int
-usg_close (usg_dev_handle *handle)
+usb_gadget_close (usb_gadget_dev_handle *handle)
 {
-  struct _usg_endpoint *ep;
+  struct _usb_gadget_endpoint *ep;
 
   if (!handle || !handle->ep0)
     {
@@ -442,7 +442,7 @@ usg_close (usg_dev_handle *handle)
   free (handle->ep0);
   handle->ep0 = NULL;
 
-  usg_list_for_each_entry (ep, &handle->ep_list, ep_list)
+  usb_gadget_list_for_each_entry (ep, &handle->ep_list, ep_list)
     {
       close_ep (ep);
       free (ep);
@@ -452,15 +452,15 @@ usg_close (usg_dev_handle *handle)
   return 0;
 }
 
-struct usg_endpoint *
-usg_endpoint (usg_dev_handle *handle, int number)
+struct usb_gadget_endpoint *
+usb_gadget_endpoint (usb_gadget_dev_handle *handle, int number)
 {
-  struct _usg_endpoint *ep;
+  struct _usb_gadget_endpoint *ep;
 
   if (number == 0)
     return &handle->ep0->ep;
   
-  usg_list_for_each_entry (ep, &handle->ep_list, ep_list)
+  usb_gadget_list_for_each_entry (ep, &handle->ep_list, ep_list)
     if ((ep->descriptor->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK) == number)
       return &ep->ep;
 
@@ -468,15 +468,15 @@ usg_endpoint (usg_dev_handle *handle, int number)
 }
 
 static int
-set_config (usg_dev_handle *handle, int value)
+set_config (usb_gadget_dev_handle *handle, int value)
 {
   struct usb_descriptor_header **header;
   struct usb_config_descriptor *config;
-  struct _usg_endpoint *ep;
+  struct _usb_gadget_endpoint *ep;
 
   if (value == 0)
     {
-      usg_list_for_each_entry (ep, &handle->ep_list, ep_list)
+      usb_gadget_list_for_each_entry (ep, &handle->ep_list, ep_list)
 	{
 	  int number;
 
@@ -485,7 +485,7 @@ set_config (usg_dev_handle *handle, int value)
 	  close_ep (ep);
 	  if (handle->event_cb)
 	    {
-	      struct usg_event event;
+	      struct usb_gadget_event event;
 
 	      event.type = USG_EVENT_ENDPOINT_DISABLE;
 	      event.u.number = number;
@@ -506,7 +506,7 @@ set_config (usg_dev_handle *handle, int value)
     {
       struct usb_descriptor_header **hs_header;
       struct usb_endpoint_descriptor *descriptor = NULL, *hs_descriptor = NULL;
-      struct _usg_endpoint *ep;
+      struct _usb_gadget_endpoint *ep;
       int number;
 
       if ((*header)->bDescriptorType != USB_DT_ENDPOINT)
@@ -532,23 +532,23 @@ set_config (usg_dev_handle *handle, int value)
       ep = find_ep (handle, descriptor);
       if (!ep)
 	{
-	  debug (handle, 2, "libusg: set_config: find_ep failed\n");
+	  debug (handle, 2, "libusb_gadget: set_config: find_ep failed\n");
 	  return -1;
 	}
       if (open_ep (ep, descriptor, hs_descriptor) < 0)
 	{
-	  debug (handle, 2, "libusg: set_config: %s open failed\n",
+	  debug (handle, 2, "libusb_gadget: set_config: %s open failed\n",
 		 ep->ep.name);
 	  close_ep (ep);
 	  return -1;
 	}
-      debug (handle, 2, "libusg: set_config: %s opened\n", ep->ep.name);
+      debug (handle, 2, "libusb_gadget: set_config: %s opened\n", ep->ep.name);
       ep->descriptor = descriptor;
       ep->hs_descriptor = hs_descriptor;
       ep->handle = handle;
       if (handle->event_cb)
 	{
-	  struct usg_event event;
+	  struct usb_gadget_event event;
 
 	  event.type = USG_EVENT_ENDPOINT_ENABLE;
 	  event.u.number = number;
@@ -559,17 +559,17 @@ set_config (usg_dev_handle *handle, int value)
 }
 
 static void
-setup (struct usg_dev_handle *handle, struct usb_ctrlrequest *ctrl)
+setup (struct usb_gadget_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 {
   int ret;
   uint8_t buf[256];
-  uint16_t value = usg_le16_to_cpu(ctrl->wValue);
-  uint16_t index = usg_le16_to_cpu(ctrl->wIndex);
-  uint16_t length = usg_le16_to_cpu(ctrl->wLength);
-  struct _usg_endpoint *ep;
+  uint16_t value = usb_gadget_le16_to_cpu(ctrl->wValue);
+  uint16_t index = usb_gadget_le16_to_cpu(ctrl->wIndex);
+  uint16_t length = usb_gadget_le16_to_cpu(ctrl->wLength);
+  struct _usb_gadget_endpoint *ep;
 
   debug (handle, 2,
-	 "libusg: setup: ctrl->bRequestType = %d, ctrl->bRequest = %d, "
+	 "libusb_gadget: setup: ctrl->bRequestType = %d, ctrl->bRequest = %d, "
 	 "ctrl->wValue = %d, ctrl->wIndex = %d, ctrl->wLength = %d\n",
 	 ctrl->bRequestType, ctrl->bRequest, value, index, length);
   switch (ctrl->bRequestType & USB_TYPE_MASK)
@@ -598,7 +598,7 @@ setup (struct usg_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 	      write (handle->ep0->fd, buf, ret);
 	      break;
 	    case USB_DT_STRING:
-	      ret = usg_get_string (handle->device->strings, value & 0xff, buf);
+	      ret = usb_gadget_get_string (handle->device->strings, value & 0xff, buf);
 	      if (ret < 0)
 		goto stall;
 	      if (ret > length)
@@ -615,7 +615,7 @@ setup (struct usg_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 	    goto stall;
 	  if (set_config (handle, value) < 0)
 	    {
-	      debug (handle, 2, "libusg: setup: set_config failed\n");
+	      debug (handle, 2, "libusb_gadget: setup: set_config failed\n");
 	      goto stall;
 	    }
 
@@ -637,9 +637,9 @@ setup (struct usg_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 	    goto stall;
 
 	  ret = 0;
-	  usg_list_for_each_entry (ep, &handle->ep_list, ep_list)
+	  usb_gadget_list_for_each_entry (ep, &handle->ep_list, ep_list)
 	    {
-	      debug (handle, 2, "libusg: setup: clear halt %s %d %d\n",
+	      debug (handle, 2, "libusb_gadget: setup: clear halt %s %d %d\n",
 		     ep->ep.name, ep->fd, ret);
 	      if (ep->fd > 0
 		  /* FIXME: dummy_udc and musb_hdrc don't return from
@@ -668,10 +668,10 @@ stall:
 }
 
 int
-usg_handle_control_event (usg_dev_handle *handle)
+usb_gadget_handle_control_event (usb_gadget_dev_handle *handle)
 {
   struct usb_gadgetfs_event events[NEVENT];
-  struct usg_event event;
+  struct usb_gadget_event event;
   int ret, nevent, i;
 
   ret = read (handle->ep0->fd, &events, sizeof(events));
@@ -679,10 +679,10 @@ usg_handle_control_event (usg_dev_handle *handle)
     return ret;
 
   nevent = ret / sizeof(events[0]);
-  debug (handle, 2, "libusg: %d events received\n", nevent);
+  debug (handle, 2, "libusb_gadget: %d events received\n", nevent);
   for (i = 0; i < nevent; i++)
     {
-      debug (handle, 2, "libusg: event %d\n", events[i].type);
+      debug (handle, 2, "libusb_gadget: event %d\n", events[i].type);
       switch (events[i].type)
 	{
 	case GADGETFS_SETUP:
@@ -695,7 +695,7 @@ usg_handle_control_event (usg_dev_handle *handle)
 	    {
 	      event.type = USG_EVENT_CONNECT;
 	      handle->speed = events[i].u.speed;
-	      debug (handle, 2, "libusg: connected with speed %d\n",
+	      debug (handle, 2, "libusb_gadget: connected with speed %d\n",
 		     handle->speed);
 	      handle->event_cb (handle, &event, handle->event_arg);
 	    }
@@ -722,16 +722,16 @@ usg_handle_control_event (usg_dev_handle *handle)
 }
 
 ssize_t
-usg_endpoint_write (struct usg_endpoint *ep, const void *buf, size_t len,
+usb_gadget_endpoint_write (struct usb_gadget_endpoint *ep, const void *buf, size_t len,
 		    int timeout)
 {
-  struct _usg_endpoint *_ep;
+  struct _usb_gadget_endpoint *_ep;
   struct usb_endpoint_descriptor *descriptor;
 
-  _ep = usg_container_of(ep, struct _usg_endpoint, ep);
+  _ep = usb_gadget_container_of(ep, struct _usb_gadget_endpoint, ep);
   if (_ep->fd < 0)
     {
-      debug (_ep->handle, 2, "libusg: usg_endpoint_write: %s is closed\n",
+      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_write: %s is closed\n",
 	     ep->name);
       errno = EINVAL;
       return -1;
@@ -742,9 +742,9 @@ usg_endpoint_write (struct usg_endpoint *ep, const void *buf, size_t len,
   else
     descriptor = _ep->descriptor;
 
-  if (len > usg_le16_to_cpu(descriptor->wMaxPacketSize))
+  if (len > usb_gadget_le16_to_cpu(descriptor->wMaxPacketSize))
     {
-      debug (_ep->handle, 2, "libusg: usg_endpoint_write: too long message\n");
+      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_write: too long message\n");
       errno = EINVAL;
       return -1;
     }
@@ -753,16 +753,16 @@ usg_endpoint_write (struct usg_endpoint *ep, const void *buf, size_t len,
 }
 
 ssize_t
-usg_endpoint_read (struct usg_endpoint *ep, void *buf, size_t len,
+usb_gadget_endpoint_read (struct usb_gadget_endpoint *ep, void *buf, size_t len,
 		   int timeout)
 {
-  struct _usg_endpoint *_ep;
+  struct _usb_gadget_endpoint *_ep;
   struct usb_endpoint_descriptor *descriptor;
 
-  _ep = usg_container_of(ep, struct _usg_endpoint, ep);
+  _ep = usb_gadget_container_of(ep, struct _usb_gadget_endpoint, ep);
   if (_ep->fd < 0)
     {
-      debug (_ep->handle, 2, "libusg: usg_endpoint_read: %s is closed\n",
+      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_read: %s is closed\n",
 	     ep->name);
       errno = EINVAL;
       return -1;
@@ -773,9 +773,9 @@ usg_endpoint_read (struct usg_endpoint *ep, void *buf, size_t len,
   else
     descriptor = _ep->descriptor;
   
-  if (len > usg_le16_to_cpu(descriptor->wMaxPacketSize))
+  if (len > usb_gadget_le16_to_cpu(descriptor->wMaxPacketSize))
     {
-      debug (_ep->handle, 2, "libusg: usg_endpoint_read: too long message\n");
+      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_read: too long message\n");
       errno = EINVAL;
       return -1;
     }
@@ -784,14 +784,14 @@ usg_endpoint_read (struct usg_endpoint *ep, void *buf, size_t len,
 }
 
 void
-usg_set_event_cb (usg_dev_handle *handle, usg_event_cb cb, void *arg)
+usb_gadget_set_event_cb (usb_gadget_dev_handle *handle, usb_gadget_event_cb cb, void *arg)
 {
   handle->event_cb = cb;
   handle->event_arg = arg;
 }
 
 int
-usg_control_fd (usg_dev_handle *handle)
+usb_gadget_control_fd (usb_gadget_dev_handle *handle)
 {
   return handle->ep0->fd;
 }

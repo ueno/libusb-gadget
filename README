@@ -1,6 +1,6 @@
 * What's this?
 
-libusg is a simple wrapper around Linux USB GadgetFS[1], which enables
+libusb-gadget is a simple wrapper around Linux USB GadgetFS[1], which enables
 USB target development in userspace.  It allows developers to write a
 trivial gadget in ~200 lines, while the original GadgetFS example[2]
 is ~1700 lines.
@@ -18,7 +18,7 @@ will need to generate a couple of kernel modules by hand:
  $ sudo apt-get install linux-source-2.6.XX linux-headers-2.6.XX
  $ cd /usr/src
  $ tar xf linux-source-2.6.XX.tar.bz2
- $ cd libusg/scripts
+ $ cd libusb-gadget/scripts
  $ ./generate-kernel-modules /usr/src/linux-source-2.6.XX
 
 After successful build, you will find "dummy_hcd.ko" and
@@ -32,9 +32,9 @@ and mount the GadgetFS:
  $ sudo mkdir /dev/gadget
  $ sudo mount -t gadgetfs none /dev/gadget
 
-Now you can try libusg.
+Now you can try libusb-gadget.
 
- $ cd libusg
+ $ cd libusb-gadget
  $ ./configure
  $ make
 
@@ -45,7 +45,7 @@ tests/ contains an example gadget.
 
 On another terminal:
 
- $ cd libusg/tests
+ $ cd libusb-gadget/tests
  $ sudo ./loopback-test 00FF:0000 # VEND:PROD
 
 * Limitations

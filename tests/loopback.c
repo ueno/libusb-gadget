@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2009 Daiki Ueno <ueno@unixuser.org>
- * This file is part of libusg.
+ * This file is part of libusb-gadget.
  *
- * libusg is free software: you can redistribute it and/or modify
+ * libusb_gadget is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libusg is distributed in the hope that it will be useful,
+ * libusb_gadget is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -28,7 +28,7 @@
 #else
 #include <linux/usb_ch9.h>
 #endif
-#include <usg.h>
+#include <usb_gadget.h>
 
 /* /dev/gadget/ep* doesn't support poll, we have to use an alternative
    approach. */
@@ -39,14 +39,14 @@
 #define STRING_SERIAL                   101
 #define STRING_LOOPBACK              250
 
-static struct usg_string strings[] = {
+static struct usb_gadget_string strings[] = {
   {STRING_MANUFACTURER, "The manufacturer",},
   {STRING_PRODUCT, "The product",},
   {STRING_SERIAL, "0123456789.0123456789.0123456789",},
   {STRING_LOOPBACK, "The loopback",},
 };
 
-static struct usg_strings loopback_strings = {
+static struct usb_gadget_strings loopback_strings = {
   .language = 0x0409,		/* en-us */
   .strings = strings
 };
@@ -57,12 +57,12 @@ static struct usb_device_descriptor loopback_device_descriptor = {
   .bLength = sizeof(loopback_device_descriptor),
   .bDescriptorType = USB_DT_DEVICE,
 
-  .bcdUSB = usg_cpu_to_le16(0x0200),
+  .bcdUSB = usb_gadget_cpu_to_le16(0x0200),
   .bDeviceClass = USB_CLASS_VENDOR_SPEC,
 
-  .iManufacturer = usg_cpu_to_le16(STRING_MANUFACTURER),
-  .iProduct = usg_cpu_to_le16(STRING_PRODUCT),
-  .iSerialNumber = usg_cpu_to_le16(STRING_SERIAL),
+  .iManufacturer = usb_gadget_cpu_to_le16(STRING_MANUFACTURER),
+  .iProduct = usb_gadget_cpu_to_le16(STRING_PRODUCT),
+  .iSerialNumber = usb_gadget_cpu_to_le16(STRING_SERIAL),
   .bNumConfigurations = 1,
 };
 
@@ -92,7 +92,7 @@ static struct usb_endpoint_descriptor loopback_ep_in_descriptor = {
 
   .bEndpointAddress = USB_DIR_IN | 7, /* number is mandatory for gadgetfs */
   .bmAttributes = USB_ENDPOINT_XFER_BULK,
-  .wMaxPacketSize = usg_cpu_to_le16(64), /* mandatory for gadgetfs */
+  .wMaxPacketSize = usb_gadget_cpu_to_le16(64), /* mandatory for gadgetfs */
 };
 
 static struct usb_endpoint_descriptor loopback_ep_out_descriptor = {
@@ -101,7 +101,7 @@ static struct usb_endpoint_descriptor loopback_ep_out_descriptor = {
 
   .bEndpointAddress = USB_DIR_OUT | 3, /* number is mandatory for gadgetfs */
   .bmAttributes = USB_ENDPOINT_XFER_BULK,
-  .wMaxPacketSize = usg_cpu_to_le16(64), /* mandatory for gadgetfs */
+  .wMaxPacketSize = usb_gadget_cpu_to_le16(64), /* mandatory for gadgetfs */
 };
 
 static struct usb_endpoint_descriptor loopback_hs_ep_in_descriptor = {
@@ -110,7 +110,7 @@ static struct usb_endpoint_descriptor loopback_hs_ep_in_descriptor = {
 
   .bEndpointAddress = USB_DIR_IN | 7, /* number is mandatory for gadgetfs */
   .bmAttributes = USB_ENDPOINT_XFER_BULK,
-  .wMaxPacketSize = usg_cpu_to_le16(512), /* mandatory for gadgetfs */
+  .wMaxPacketSize = usb_gadget_cpu_to_le16(512), /* mandatory for gadgetfs */
 };
 
 static struct usb_endpoint_descriptor loopback_hs_ep_out_descriptor = {
@@ -119,7 +119,7 @@ static struct usb_endpoint_descriptor loopback_hs_ep_out_descriptor = {
 
   .bEndpointAddress = USB_DIR_OUT | 3, /* number is mandatory for gadgetfs */
   .bmAttributes = USB_ENDPOINT_XFER_BULK,
-  .wMaxPacketSize = usg_cpu_to_le16(512), /* mandatory for gadgetfs */
+  .wMaxPacketSize = usb_gadget_cpu_to_le16(512), /* mandatory for gadgetfs */
 };
 
 static struct usb_descriptor_header *loopback_config[] = {
@@ -138,14 +138,14 @@ static struct usb_descriptor_header *loopback_hs_config[] = {
   NULL,
 };
 
-static struct usg_endpoint *loopback_ep_in, *loopback_ep_out;
+static struct usb_gadget_endpoint *loopback_ep_in, *loopback_ep_out;
 static pthread_t loopback_thread;
 
 static void
 loopback_stop_endpoints (void *data)
 {
-  usg_endpoint_close (loopback_ep_in);
-  usg_endpoint_close (loopback_ep_out);
+  usb_gadget_endpoint_close (loopback_ep_in);
+  usb_gadget_endpoint_close (loopback_ep_out);
 }
 
 static void*
@@ -160,10 +160,10 @@ loopback_loop (void *data)
       int i;
 
       pthread_testcancel ();
-      ret = usg_endpoint_read (loopback_ep_out, buf, 64, 100);
+      ret = usb_gadget_endpoint_read (loopback_ep_out, buf, 64, 100);
       if (ret < 0)
 	{
-	  perror ("usg_endpoint_read");
+	  perror ("usb_gadget_endpoint_read");
 	  break;
 	}
       for (i = 0; i < ret / 2; i++)
@@ -173,9 +173,9 @@ loopback_loop (void *data)
 	  buf[i] = buf[ret - i - 1];
 	  buf[ret - i - 1] = c;
 	}
-      if (usg_endpoint_write (loopback_ep_in, buf, ret, 100) < 0)
+      if (usb_gadget_endpoint_write (loopback_ep_in, buf, ret, 100) < 0)
 	{
-	  perror ("usg_endpoint_write");
+	  perror ("usb_gadget_endpoint_write");
 	  break;
 	}
     }
@@ -183,17 +183,17 @@ loopback_loop (void *data)
 }
 
 static void
-loopback_event_cb (usg_dev_handle *handle, struct usg_event *event, void *arg)
+loopback_event_cb (usb_gadget_dev_handle *handle, struct usb_gadget_event *event, void *arg)
 {
   switch (event->type)
     {
     case USG_EVENT_ENDPOINT_ENABLE:
       if (event->u.number == (loopback_ep_in_descriptor.bEndpointAddress
 			      & USB_ENDPOINT_NUMBER_MASK))
-	loopback_ep_in = usg_endpoint (handle, event->u.number);
+	loopback_ep_in = usb_gadget_endpoint (handle, event->u.number);
       else if (event->u.number == (loopback_ep_out_descriptor.bEndpointAddress
 				   & USB_ENDPOINT_NUMBER_MASK))
-	loopback_ep_out = usg_endpoint (handle, event->u.number);
+	loopback_ep_out = usb_gadget_endpoint (handle, event->u.number);
 
       if (!loopback_ep_in || !loopback_ep_out)
 	return;
@@ -229,14 +229,14 @@ usage (FILE *out)
 
 int main (int argc, char **argv)
 {
-  struct usg_device device = {
+  struct usb_gadget_device device = {
     .device = &loopback_device_descriptor,
     .config = loopback_config,
     .hs_config = loopback_hs_config,
     .strings = &loopback_strings,
   };
-  usg_dev_handle *handle;
-  struct usg_endpoint *ep0;
+  usb_gadget_dev_handle *handle;
+  struct usb_gadget_endpoint *ep0;
   struct pollfd fds;
   int vendor_id, product_id, c, debug_level = 0;
   struct option long_options[] = {
@@ -276,16 +276,16 @@ int main (int argc, char **argv)
 
   loopback_device_descriptor.idVendor = vendor_id;
   loopback_device_descriptor.idProduct = product_id;
-  handle = usg_open (&device);
+  handle = usb_gadget_open (&device);
   if (!handle)
     {
       fprintf (stderr, "Couldn't open device.\n");
       exit (1);
     }
-  usg_set_event_cb (handle, loopback_event_cb, NULL);
-  usg_set_debug_level (handle, debug_level);
-  ep0 = usg_endpoint (handle, 0);
-  fds.fd = usg_control_fd (handle);
+  usb_gadget_set_event_cb (handle, loopback_event_cb, NULL);
+  usb_gadget_set_debug_level (handle, debug_level);
+  ep0 = usb_gadget_endpoint (handle, 0);
+  fds.fd = usb_gadget_control_fd (handle);
   fds.events = POLLIN;
   while (1)
     {
@@ -295,9 +295,9 @@ int main (int argc, char **argv)
 	  break;
 	}
       if (fds.revents & POLLIN)
-	usg_handle_control_event (handle);
+	usb_gadget_handle_control_event (handle);
     }
-  usg_close (handle);
+  usb_gadget_close (handle);
 
   return 0;
 }

@@ -1,4 +1,4 @@
-AC_INIT([libusg], [0.0.0], [ueno@unixuser.org])
+AC_INIT([libusb-gadget], [0.0.0], [ueno@unixuser.org])
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_CONFIG_MACRO_DIR([m4])
@@ -17,7 +17,7 @@ AC_SUBST(pkgconfigdir)
 PKG_CHECK_MODULES([libusb], [libusb >= 0.1.12])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile
-libusg.pc
+libusb-gadget.pc
 src/Makefile
 tests/Makefile
 scripts/Makefile])

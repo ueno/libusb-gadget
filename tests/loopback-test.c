@@ -1,13 +1,13 @@
 /*
  * Copyright (C) 2009 Daiki Ueno <ueno@unixuser.org>
- * This file is part of libusg.
+ * This file is part of libusb-gadget.
  *
- * libusg is free software: you can redistribute it and/or modify
+ * libusb_gadget is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libusg is distributed in the hope that it will be useful,
+ * libusb_gadget is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
