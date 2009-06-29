@@ -10,7 +10,7 @@ configure
 depcomp
 install-sh
 libtool
-libusg.pc.in
+libusb-gadget.pc
 ltmain.sh
 m4
 missing
