@@ -15,7 +15,7 @@
 #else
 #include <linux/usb_ch9.h>
 #endif
-#include "usb_gadget.h"
+#include "usb-gadget.h"
 
 static inline void put_unaligned_le16(uint16_t val, uint16_t *cp)
 {

@@ -2,12 +2,12 @@
  * Copyright (C) 2009 Daiki Ueno <ueno@unixuser.org>
  * This file is part of libusb-gadget.
  *
- * libusb_gadget is free software: you can redistribute it and/or modify
+ * libusb-gadget is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * libusb_gadget is distributed in the hope that it will be useful,
+ * libusb-gadget is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -34,7 +34,7 @@
 #else
 #include <linux/usb_gadgetfs.h>
 #endif
-#include "usb_gadget.h"
+#include "usb-gadget.h"
 #include "list.h"
 
 #define GADGETFS_DEVICE_PATH "/dev/gadget"
@@ -206,7 +206,7 @@ open_ep0 (struct usb_gadget_dev_handle *handle)
 
   if (write (ep0->fd, buf, p - buf) < 0)
     {
-      debug (ep0->handle, 2, "libusb_gadget: open_ep0: can't write config\n");
+      debug (ep0->handle, 2, "libusb-gadget: open_ep0: can't write config\n");
       goto error;
     }
 
@@ -358,7 +358,7 @@ open_ep (struct _usb_gadget_endpoint *ep,
   ret = write (ep->fd, buf, p - buf);
   if (ret < 0)
     {
-      debug (ep->handle, 2, "libusb_gadget: open_ep: can't write config\n");
+      debug (ep->handle, 2, "libusb-gadget: open_ep: can't write config\n");
       close (ep->fd);
       return -1;
     }
@@ -532,17 +532,17 @@ set_config (usb_gadget_dev_handle *handle, int value)
       ep = find_ep (handle, descriptor);
       if (!ep)
 	{
-	  debug (handle, 2, "libusb_gadget: set_config: find_ep failed\n");
+	  debug (handle, 2, "libusb-gadget: set_config: find_ep failed\n");
 	  return -1;
 	}
       if (open_ep (ep, descriptor, hs_descriptor) < 0)
 	{
-	  debug (handle, 2, "libusb_gadget: set_config: %s open failed\n",
+	  debug (handle, 2, "libusb-gadget: set_config: %s open failed\n",
 		 ep->ep.name);
 	  close_ep (ep);
 	  return -1;
 	}
-      debug (handle, 2, "libusb_gadget: set_config: %s opened\n", ep->ep.name);
+      debug (handle, 2, "libusb-gadget: set_config: %s opened\n", ep->ep.name);
       ep->descriptor = descriptor;
       ep->hs_descriptor = hs_descriptor;
       ep->handle = handle;
@@ -569,7 +569,7 @@ setup (struct usb_gadget_dev_handle *handle, struct usb_ctrlrequest *ctrl)
   struct _usb_gadget_endpoint *ep;
 
   debug (handle, 2,
-	 "libusb_gadget: setup: ctrl->bRequestType = %d, ctrl->bRequest = %d, "
+	 "libusb-gadget: setup: ctrl->bRequestType = %d, ctrl->bRequest = %d, "
 	 "ctrl->wValue = %d, ctrl->wIndex = %d, ctrl->wLength = %d\n",
 	 ctrl->bRequestType, ctrl->bRequest, value, index, length);
   switch (ctrl->bRequestType & USB_TYPE_MASK)
@@ -615,7 +615,7 @@ setup (struct usb_gadget_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 	    goto stall;
 	  if (set_config (handle, value) < 0)
 	    {
-	      debug (handle, 2, "libusb_gadget: setup: set_config failed\n");
+	      debug (handle, 2, "libusb-gadget: setup: set_config failed\n");
 	      goto stall;
 	    }
 
@@ -639,7 +639,7 @@ setup (struct usb_gadget_dev_handle *handle, struct usb_ctrlrequest *ctrl)
 	  ret = 0;
 	  usb_gadget_list_for_each_entry (ep, &handle->ep_list, ep_list)
 	    {
-	      debug (handle, 2, "libusb_gadget: setup: clear halt %s %d %d\n",
+	      debug (handle, 2, "libusb-gadget: setup: clear halt %s %d %d\n",
 		     ep->ep.name, ep->fd, ret);
 	      if (ep->fd > 0
 		  /* FIXME: dummy_udc and musb_hdrc don't return from
@@ -679,10 +679,10 @@ usb_gadget_handle_control_event (usb_gadget_dev_handle *handle)
     return ret;
 
   nevent = ret / sizeof(events[0]);
-  debug (handle, 2, "libusb_gadget: %d events received\n", nevent);
+  debug (handle, 2, "libusb-gadget: %d events received\n", nevent);
   for (i = 0; i < nevent; i++)
     {
-      debug (handle, 2, "libusb_gadget: event %d\n", events[i].type);
+      debug (handle, 2, "libusb-gadget: event %d\n", events[i].type);
       switch (events[i].type)
 	{
 	case GADGETFS_SETUP:
@@ -695,7 +695,7 @@ usb_gadget_handle_control_event (usb_gadget_dev_handle *handle)
 	    {
 	      event.type = USG_EVENT_CONNECT;
 	      handle->speed = events[i].u.speed;
-	      debug (handle, 2, "libusb_gadget: connected with speed %d\n",
+	      debug (handle, 2, "libusb-gadget: connected with speed %d\n",
 		     handle->speed);
 	      handle->event_cb (handle, &event, handle->event_arg);
 	    }
@@ -731,7 +731,7 @@ usb_gadget_endpoint_write (struct usb_gadget_endpoint *ep, const void *buf, size
   _ep = usb_gadget_container_of(ep, struct _usb_gadget_endpoint, ep);
   if (_ep->fd < 0)
     {
-      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_write: %s is closed\n",
+      debug (_ep->handle, 2, "libusb-gadget: usb_gadget_endpoint_write: %s is closed\n",
 	     ep->name);
       errno = EINVAL;
       return -1;
@@ -744,7 +744,7 @@ usb_gadget_endpoint_write (struct usb_gadget_endpoint *ep, const void *buf, size
 
   if (len > usb_gadget_le16_to_cpu(descriptor->wMaxPacketSize))
     {
-      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_write: too long message\n");
+      debug (_ep->handle, 2, "libusb-gadget: usb_gadget_endpoint_write: too long message\n");
       errno = EINVAL;
       return -1;
     }
@@ -762,7 +762,7 @@ usb_gadget_endpoint_read (struct usb_gadget_endpoint *ep, void *buf, size_t len,
   _ep = usb_gadget_container_of(ep, struct _usb_gadget_endpoint, ep);
   if (_ep->fd < 0)
     {
-      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_read: %s is closed\n",
+      debug (_ep->handle, 2, "libusb-gadget: usb_gadget_endpoint_read: %s is closed\n",
 	     ep->name);
       errno = EINVAL;
       return -1;
@@ -775,7 +775,7 @@ usb_gadget_endpoint_read (struct usb_gadget_endpoint *ep, void *buf, size_t len,
   
   if (len > usb_gadget_le16_to_cpu(descriptor->wMaxPacketSize))
     {
-      debug (_ep->handle, 2, "libusb_gadget: usb_gadget_endpoint_read: too long message\n");
+      debug (_ep->handle, 2, "libusb-gadget: usb_gadget_endpoint_read: too long message\n");
       errno = EINVAL;
       return -1;
     }
